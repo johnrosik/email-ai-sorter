@@ -57,8 +57,8 @@ export function ResultCard({ result, isLoading, error }: ResultCardProps) {
 
   if (isLoading) {
     return (
-      <section className="mt-6 rounded-xl border border-brand-500/40 bg-slate-900/70 p-6 text-sm text-slate-200 shadow-lg shadow-brand-900/20">
-        <p className="animate-pulse text-brand-200">Consulting Gemini...</p>
+      <section className="mt-6 max-w-md rounded-lg border border-brand-500/30 bg-slate-900/70 p-4 text-xs text-slate-200 shadow-lg shadow-brand-900/10">
+        <p className="animate-pulse text-brand-200">Analisando o e-mail e gerando uma resposta...</p>
       </section>
     );
   }

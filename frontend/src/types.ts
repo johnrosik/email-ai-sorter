@@ -11,3 +11,13 @@ export interface ClassificationResponse {
   reply: string | null;
   error?: string | null;
 }
+
+export interface ClassificationHistoryEntry {
+  id: string;
+  timestamp: number;
+  inputKind: "text" | "file";
+  inputLabel: string;
+  preview: string;
+  inputContent?: string | null;
+  result: ClassificationResponse;
+}

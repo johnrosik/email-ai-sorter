@@ -1,10 +1,12 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import gsap from "gsap";
 import { classifyEmail } from "./api";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { ResultCard } from "./components/ResultCard";
-import type { ClassificationResponse } from "./types";
+import { HistoryPanel } from "./components/HistoryPanel";
+import { HistoryDetailModal } from "./components/HistoryDetailModal";
+import type { ClassificationHistoryEntry, ClassificationResponse } from "./types";
 
 const SAMPLE_EMAILS = [
   "Olá equipe, preciso que confirmem a disponibilidade para a reunião de alinhamento amanhã às 9h. Incluam na resposta os pontos que gostariam de tratar.",
@@ -33,11 +35,89 @@ export default function App() {
   const [navHidden, setNavHidden] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lastSampleIndex, setLastSampleIndex] = useState<number | null>(null);
+  const [history, setHistory] = useState<ClassificationHistoryEntry[]>([]);
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const heroTitleRef = useRef<HTMLSpanElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { scrollY } = useScroll();
 
   const charactersRemaining = useMemo(() => Math.max(0, 5000 - emailText.length), [emailText]);
+
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const showErrorMessage = (message: string) => {
+    setError(message);
+    setResult(null);
+    setActiveHistoryId(null);
+    setIsHistoryModalOpen(false);
+  };
+
+  const sanitizeResponse = (data: ClassificationResponse): ClassificationResponse => ({
+    ...data,
+    error: null,
+    keywords: data.keywords ? [...data.keywords] : null
+  });
+
+  const generateHistoryId = () =>
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const buildHistoryEntry = (
+    response: ClassificationResponse,
+    trimmedText: string,
+    file: File | null
+  ): ClassificationHistoryEntry => {
+    const inputKind = file ? "file" : "text";
+    const inputLabel = file ? file.name : "Texto digitado";
+    const basePreview = inputKind === "text" ? trimmedText || "Sem conteúdo" : file?.name ?? "Arquivo enviado";
+    const preview = basePreview.length > 160 ? `${basePreview.slice(0, 160)}…` : basePreview;
+
+    return {
+      id: generateHistoryId(),
+      timestamp: Date.now(),
+      inputKind,
+      inputLabel,
+      preview,
+      inputContent: inputKind === "text" ? trimmedText : null,
+      result: {
+        ...response,
+        keywords: response.keywords ? [...response.keywords] : null
+      }
+    };
+  };
+
+  const appendHistoryEntry = (entry: ClassificationHistoryEntry) => {
+    setHistory((previous) => [entry, ...previous].slice(0, 20));
+    setActiveHistoryId(entry.id);
+  };
+
+  const extractServiceError = (response: ClassificationResponse) => {
+    const fallbackMessage = response.error?.trim() || "Ocorreu um erro desconhecido.";
+    const detailedMessage = typeof response.reason === "string" && response.reason.trim() ? response.reason : null;
+    return detailedMessage ?? fallbackMessage;
+  };
+
+  const validateSelectedFile = (file: File): string | null => {
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const allowedExtensions = new Set(["txt", "pdf"]);
+    const maxFileSize = 16 * 1024 * 1024;
+
+    if (!allowedExtensions.has(extension)) {
+      return "Formato não suportado. Envie um arquivo .txt ou .pdf.";
+    }
+
+    if (file.size > maxFileSize) {
+      return "O arquivo excede 16MB. Selecione um arquivo menor.";
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -78,25 +158,31 @@ export default function App() {
     const trimmedText = emailText.trim();
 
     if (!selectedFile && !trimmedText) {
-      setError("Inclua um texto ou anexe um arquivo .txt ou .pdf para classificar.");
+      showErrorMessage("Inclua um texto ou anexe um arquivo .txt ou .pdf para classificar.");
       return;
     }
 
     setIsLoading(true);
     setResult(null);
     setError(null);
+    setActiveHistoryId(null);
+  setIsHistoryModalOpen(false);
     try {
       const data = await classifyEmail({ emailText: trimmedText, file: selectedFile });
       if (data.error) {
-        const fallbackMessage = data.error?.trim() || "Ocorreu um erro desconhecido.";
-        const detailedMessage = typeof data.reason === "string" && data.reason.trim() ? data.reason : null;
-        setError(detailedMessage ?? fallbackMessage);
-        setResult(null);
-      } else {
-        setResult({ ...data, error: null });
+        showErrorMessage(extractServiceError(data));
+        return;
       }
+
+      const sanitizedResult = sanitizeResponse(data);
+      setResult(sanitizedResult);
+      setError(null);
+
+      const entry = buildHistoryEntry(sanitizedResult, trimmedText, selectedFile);
+      appendHistoryEntry(entry);
     } catch (classificationError) {
-      setError(classificationError instanceof Error ? classificationError.message : String(classificationError));
+      const message = classificationError instanceof Error ? classificationError.message : String(classificationError);
+      showErrorMessage(message);
     } finally {
       setIsLoading(false);
     }
@@ -119,11 +205,11 @@ export default function App() {
     setLastSampleIndex(nextIndex);
     setEmailText(nextSample);
     setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    resetFileInput();
     setResult(null);
     setError(null);
+    setActiveHistoryId(null);
+    setIsHistoryModalOpen(false);
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -133,20 +219,10 @@ export default function App() {
       return;
     }
 
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-    const allowedExtensions = ["txt", "pdf"];
-    const maxFileSize = 16 * 1024 * 1024; // 16 MB
-
-    if (!allowedExtensions.includes(extension)) {
+    const validationError = validateSelectedFile(file);
+    if (validationError) {
       setSelectedFile(null);
-      setError("Formato não suportado. Envie um arquivo .txt ou .pdf.");
-      event.target.value = "";
-      return;
-    }
-
-    if (file.size > maxFileSize) {
-      setSelectedFile(null);
-      setError("O arquivo excede 16MB. Selecione um arquivo menor.");
+      setError(validationError);
       event.target.value = "";
       return;
     }
@@ -157,15 +233,40 @@ export default function App() {
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    resetFileInput();
   };
 
   const handleStart = () => {
     const section = document.getElementById("production");
     section?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const handleSelectHistory = useCallback(
+    (entry: ClassificationHistoryEntry) => {
+      setResult(entry.result);
+      setError(null);
+      setActiveHistoryId(entry.id);
+      setIsLoading(false);
+
+      if (entry.inputKind === "text") {
+        setEmailText(entry.inputContent ?? "");
+      } else {
+        setEmailText("");
+      }
+
+      setSelectedFile(null);
+      resetFileInput();
+    },
+    []
+  );
+
+  const activeHistoryEntry = useMemo(
+    () => history.find((entry) => entry.id === activeHistoryId) ?? null,
+    [history, activeHistoryId]
+  );
+
+  const handleHistoryDetailOpen = useCallback(() => setIsHistoryModalOpen(true), []);
+  const handleHistoryDetailClose = useCallback(() => setIsHistoryModalOpen(false), []);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-slate-100">
@@ -300,15 +401,18 @@ export default function App() {
 
         <section
           id="production"
-          className="relative rounded-3xl border border-brand-500/40 bg-black/70 p-10 shadow-[0_30px_70px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+          className="relative overflow-hidden rounded-3xl shadow-[0_45px_120px_rgba(0,0,0,0.65)] backdrop-blur-2xl"
         >
-          <motion.header
-            className="mb-8 space-y-3 text-center"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_160%_at_top,rgba(240,178,29,0.08),transparent_65%),_linear-gradient(180deg,rgba(8,8,8,0.96),rgba(2,2,2,0.99))]" />
+
+          <div className="relative z-10 p-10">
+            <motion.header
+              className="mb-8 space-y-3 text-center"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
             <p className="inline-flex rounded-full border border-brand-400/50 bg-brand-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-brand-200">
               Área de produção
             </p>
@@ -319,7 +423,15 @@ export default function App() {
             </p>
           </motion.header>
 
-          <motion.form
+          <div className="mb-8 rounded-3xl border border-brand-400/20 bg-brand-500/10 p-4 text-sm text-brand-100/90">
+            <p className="text-xs uppercase tracking-[0.35em] text-brand-200/80">Aviso</p>
+            <p className="mt-2 text-[0.85rem] leading-relaxed text-slate-300/90">
+              A primeira resposta pode levar cerca de 50 segundos: pois esta é uma limitação da versão gratuita do Render e o servidor web é reativado
+              sob demanda quando fica em espera.
+            </p>
+          </div>
+
+            <motion.form
             onSubmit={handleSubmit}
             className="space-y-6"
             initial={{ opacity: 0, y: 40 }}
@@ -397,11 +509,20 @@ export default function App() {
                 {isLoading ? "Analisando..." : "Classificar"}
               </button>
             </div>
-          </motion.form>
-
-          <ResultCard result={result} isLoading={isLoading} error={error} />
+            </motion.form>
+            <div className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <ResultCard result={result} isLoading={isLoading} error={error} />
+              <HistoryPanel
+                history={history}
+                activeId={activeHistoryId}
+                onSelect={handleSelectHistory}
+                onOpenDetail={handleHistoryDetailOpen}
+              />
+            </div>
+          </div>
         </section>
       </main>
+      <HistoryDetailModal entry={activeHistoryEntry} isOpen={isHistoryModalOpen} onClose={handleHistoryDetailClose} />
     </div>
   );
 }
