@@ -1,35 +1,36 @@
-import json  # Manipula conversões entre texto e objetos Python
-from os import getenv  # Lê variáveis de ambiente individuais
+import json
+from os import getenv 
 
-import google.generativeai as genai  # SDK oficial para acessar o Gemini
-from dotenv import load_dotenv  # Facilita carregar variáveis definidas em arquivo .env
-from google.api_core.exceptions import GoogleAPIError, InvalidArgument, ResourceExhausted  # Exceções mapeadas da API Google
+import google.generativeai as genai 
+from dotenv import load_dotenv  
+from google.api_core.exceptions import GoogleAPIError, InvalidArgument, ResourceExhausted
 
-# Carrega variáveis do arquivo .env
-load_dotenv()  # Disponibiliza variáveis do .env no ambiente de execução
 
-# Mantém uma instância cacheada do modelo para evitar reconfiguração repetida.
-_model: genai.GenerativeModel | None = None  # Guarda a referência global reutilizada do modelo Gemini
+load_dotenv()
+
+
+_model: genai.GenerativeModel | None = None 
+
 # Mensagem de erro da falta da chave da API.
 _missing_key_message = (
     "Missing GEMINI_API_KEY (or GOOGLE_API_KEY) environment variable. Set it in your environment or .env file."
-)  # Texto padrão enviado quando não há chave configurada
+)  # Texto padrão enviado quando não tem uma chave configurada
 
 
-# Exceção específica para sinalizar ausência de chave da API Gemini.
-class _MissingAPIKeyError(RuntimeError):  # Especializa RuntimeError para identificar configuração ausente
+# Erro para tratar da falta da chave de api
+class _MissingAPIKeyError(RuntimeError):
     """Erro disparado quando a chave da API Gemini não está configurada."""
 
 
 # Constrói uma resposta padronizada de erro para o cliente, preservando informações úteis.
-def _error_payload(reason: str, code: str, extra: dict | None = None) -> dict:  # Agrupa os dados de erro em um dicionário consistente
+def _error_payload(reason: str, code: str, extra: dict | None = None) -> dict:
     payload = {
         "reason": reason, #Retorna o erro descritivo, junto do código como "missing_api_key" ou algum erro da API
-        "error": code, #Retorna o código do erro
+        "error": code, 
     }
-    if extra: #Só vai adicionar dados extras se houver
-        payload.update(extra)  # Acrescenta informações adicionais fornecidas pelo chamador
-    return payload  # Entrega o pacote de erro pronto para o cliente
+    if extra:
+        payload.update(extra) 
+    return payload
 
 
 # Lê as possíveis variáveis de ambiente que armazenam a chave e retorna a primeira válida, caso contrário, retorna o erro da falta da chave.
@@ -47,10 +48,10 @@ def _get_model() -> genai.GenerativeModel:
     if _model is None:  # Verifica se já existe modelo pronto
         genai.configure(api_key=_load_api_key())
         _model = genai.GenerativeModel(
-            "models/gemini-2.5-flash",  # Define qual versão do modelo será utilizada
+            "models/gemini-2.5-flash", 
             generation_config={
                 "temperature": 0.3, #Aleatoriedade controlada das respostas
-                "max_output_tokens": 512,  # Limita o tamanho da saída gerada
+                "max_output_tokens": 512,
                 "response_mime_type": "application/json",
             },
         )
@@ -100,7 +101,7 @@ def _collect_response_text(response) -> str:
         for part in content_parts: 
             part_text = getattr(part, "text", None) 
             if part_text: 
-                parts.append(part_text)  # Armazena para concatenar depois
+                parts.append(part_text)
     return "\n".join(part.strip() for part in parts if part).strip()  # Junta e limpa todas as partes em uma única string
 
 
@@ -111,7 +112,7 @@ def _parse_response_payload(response_text: str) -> tuple[dict | None, dict | Non
 
     try:
         payload = json.loads(response_text)  # Converte o JSON em dicionário Python
-    except json.JSONDecodeError:  # Caso haja erro de parsing
+    except json.JSONDecodeError:
         return None, _error_payload(
             "Could not parse Gemini response as JSON",
             "json_parse_error",
@@ -125,8 +126,8 @@ def _parse_response_payload(response_text: str) -> tuple[dict | None, dict | Non
             {"original_response": response_text},
         )
 
-    payload.setdefault("keywords", [])  # Adiciona lista vazia de palavras-chave quando ausente
-    payload.setdefault("reply", "")  # Garante que sempre exista uma resposta (mesmo vazia)
+    payload.setdefault("keywords", [])
+    payload.setdefault("reply", "")  
 
     return payload, None  # Retorna payload válido e indica ausência de erros
 
