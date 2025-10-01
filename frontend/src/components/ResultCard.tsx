@@ -1,4 +1,5 @@
-import { CheckCircleIcon, ExclamationCircleIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { CheckCircleIcon, ClipboardDocumentIcon, ExclamationCircleIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
 import type { ClassificationResponse } from "../types";
 
 type ResultCardProps = {
@@ -8,6 +9,52 @@ type ResultCardProps = {
 };
 
 export function ResultCard({ result, isLoading, error }: ResultCardProps) {
+  const [copyFeedback, setCopyFeedback] = useState<"copied" | "error" | null>(null);
+
+  useEffect(() => {
+    if (!copyFeedback) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setCopyFeedback(null), 2200);
+    return () => window.clearTimeout(timeoutId);
+  }, [copyFeedback]);
+
+  const handleCopyReply = async (reply: string) => {
+    if (!reply) {
+      return;
+    }
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(reply);
+        setCopyFeedback("copied");
+        return;
+      }
+    } catch (clipboardError) {
+      console.error("Falha ao copiar resposta:", clipboardError);
+    }
+
+    try {
+      if (typeof document === "undefined") {
+        throw new Error("Documento indisponível para fallback de cópia.");
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = reply;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopyFeedback("copied");
+    } catch (fallbackError) {
+      console.error("Fallback de cópia falhou:", fallbackError);
+      setCopyFeedback("error");
+    }
+  };
+
   if (isLoading) {
     return (
       <section className="mt-6 rounded-xl border border-brand-500/40 bg-slate-900/70 p-6 text-sm text-slate-200 shadow-lg shadow-brand-900/20">
@@ -116,11 +163,30 @@ export function ResultCard({ result, isLoading, error }: ResultCardProps) {
       )}
 
       {result.reply && (
-        <div className="mt-6">
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Resposta sugerida</p>
-          <blockquote className="mt-3 rounded-2xl border border-brand-400/30 bg-brand-500/10 p-5 text-sm text-slate-100/90">
+        <div className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Resposta sugerida</p>
+            <button
+              type="button"
+              onClick={() => handleCopyReply(result.reply ?? "")}
+              className="inline-flex items-center gap-2 rounded-full border border-brand-400/40 bg-transparent px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-200 transition hover:border-brand-300 hover:text-brand-100 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+            >
+              <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
+              Copiar resposta
+            </button>
+          </div>
+          <blockquote className="rounded-2xl border border-brand-400/30 bg-brand-500/10 p-5 text-sm text-slate-100/90">
             {result.reply}
           </blockquote>
+          {copyFeedback && (
+            <p
+              className={`text-xs ${copyFeedback === "copied" ? "text-brand-200" : "text-red-200"}`}
+              role="status"
+              aria-live="assertive"
+            >
+              {copyFeedback === "copied" ? "Resposta copiada para a área de transferência." : "Não foi possível copiar a resposta."}
+            </p>
+          )}
         </div>
       )}
     </section>

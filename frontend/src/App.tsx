@@ -6,7 +6,14 @@ import { AnimatedBackground } from "./components/AnimatedBackground";
 import { ResultCard } from "./components/ResultCard";
 import type { ClassificationResponse } from "./types";
 
-const SAMPLE_EMAIL = `Hello team, please review the attached roadmap draft before tomorrow's meeting and send me your updates.`;
+const SAMPLE_EMAILS = [
+  "Olá equipe, preciso que confirmem a disponibilidade para a reunião de alinhamento amanhã às 9h. Incluam na resposta os pontos que gostariam de tratar.",
+  "Bom dia, segue anexo o relatório de performance do mês. Preciso que revisem até quinta-feira e apontem melhorias prioritárias.",
+  "Oi time financeiro, podem validar se a nota fiscal 2389 já foi conciliada? O fornecedor está cobrando um posicionamento ainda hoje.",
+  "Olá suporte, cliente relatou instabilidade no painel desde às 14h. Podem investigar e me enviar um diagnóstico inicial?",
+  "Boa tarde, estou preparando o material do workshop e preciso de três estudos de caso recentes sobre automação de e-mails.",
+  "Pessoal, conseguimos antecipar a entrega da campanha? O marketing precisa aprovar os textos finais até sexta-feira." 
+];
 
 const NAV_ITEMS = [
   { label: "Início", href: "#hero" },
@@ -25,6 +32,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [lastSampleIndex, setLastSampleIndex] = useState<number | null>(null);
   const heroTitleRef = useRef<HTMLSpanElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { scrollY } = useScroll();
@@ -95,7 +103,21 @@ export default function App() {
   };
 
   const handleUseSample = () => {
-    setEmailText(SAMPLE_EMAIL);
+    if (SAMPLE_EMAILS.length === 0) {
+      return;
+    }
+
+    let nextIndex = Math.floor(Math.random() * SAMPLE_EMAILS.length);
+    if (lastSampleIndex !== null && SAMPLE_EMAILS.length > 1) {
+      while (nextIndex === lastSampleIndex) {
+        nextIndex = Math.floor(Math.random() * SAMPLE_EMAILS.length);
+      }
+    }
+
+    const nextSample = SAMPLE_EMAILS[nextIndex];
+
+    setLastSampleIndex(nextIndex);
+    setEmailText(nextSample);
     setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -364,7 +386,7 @@ export default function App() {
                 onClick={handleUseSample}
                 className="inline-flex items-center justify-center rounded-full border border-brand-400/50 bg-transparent px-6 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-brand-200 transition hover:border-brand-300 hover:text-brand-100 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
               >
-                Usar exemplo
+                Usar exemplo aleatório
               </button>
 
               <button

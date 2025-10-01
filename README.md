@@ -1,87 +1,96 @@
-# Email AI Sorter
+# Rosiak Classifier
 
-Aplicação completa para classificar emails com Gemini: o backend Flask roda o classificador e o frontend Vite entrega a experiência visual.
+> Classificação inteligente de e-mails com Gemini, Flask e uma SPA moderna em React.
 
-## Project structure
+## Visão geral
 
-- `backend/` – Flask API, AI logic, automated tests, and Python requirements.
-- `frontend/` – React + Vite + Tailwind single-page app for interacting with the classifier.
-- `render.yaml` – Render blueprint to provision the backend web service.
-- `.env.example` / `frontend/.env.example` – Modelos de variáveis de ambiente para backend e frontend.
-- `README.md` – This guide.
+O Email AI Sorter recebe anexos ou corpo de e-mails, envia o conteúdo para o Gemini e classifica automaticamente o tipo de mensagem. O objetivo é acelerar triagens de atendimento, automatizar workflows e entregar insights em segundos.
 
-## Backend quickstart
+## Principais funcionalidades
 
-```bash
+- Upload e leitura de e-mails em PDF/Texto para classificação por IA.
+- API REST em Flask que organiza prompts e chamadas ao Gemini.
+- SPA responsiva em React, com animações suaves e feedback em tempo real.
+- Pipeline pronto para deploy em Render (backend Python + site estático Vite).
+
+## Stack principal
+
+| Camada | Tecnologias |
+| --- | --- |
+| Backend | Python 3.11+, Flask, Flask-CORS, google-generativeai, python-dotenv, pytest |
+| Frontend | React 18, Vite 5, TypeScript, Tailwind CSS, Headless UI, Heroicons, Framer Motion, GSAP |
+| Infra | Render Blueprint (`render.yaml`), variáveis `.env`, Gunicorn |
+
+## Arquitetura em alto nível
+
+```
+frontend/ (SPA) ──► chama ──► backend/ (Flask API) ──► Gemini
+```
+
+- `frontend/` consome a API para enviar e-mails e exibir o resultado.
+- `backend/` prepara o prompt, chama o Gemini via `google-generativeai` e retorna a classificação.
+
+## Pré-requisitos
+
+- Python 3.11 ou superior
+- Node.js 18+ (ou compatível com Vite 5)
+- Chave de API do Gemini (`GEMINI_API_KEY` ou `GOOGLE_API_KEY`)
+
+## Como rodar localmente
+
+### Backend (Flask)
+
+```powershell
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 python -m pytest
 python -m backend.app
 ```
 
-The API binds to `0.0.0.0` on port `8000` by default. Override host/port with the `FLASK_HOST`, `FLASK_PORT`, or `PORT` environment variables.
+> **macOS/Linux:** troque a ativação do ambiente virtual por `source .venv/bin/activate`.
 
-### Environment variables
+A API sobe em `http://127.0.0.1:8000` por padrão. Ajuste `FLASK_HOST`, `FLASK_PORT` ou `PORT` se necessário.
 
-Set either `GEMINI_API_KEY` or `GOOGLE_API_KEY` before starting the server so the classifier can call Gemini. A local `.env` file is supported via `python-dotenv`.
+### Frontend (Vite + React)
 
-```bash
-# backend/.env
-GEMINI_API_KEY=your-key
-```
-
-### Frontend quickstart
-
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-The dev server runs on `http://127.0.0.1:5173` and proxies requests directly to the backend URL configured via `VITE_API_BASE_URL` (default: `http://127.0.0.1:8000`). Copy `.env.example` to `.env` to change it.
+O Vite roda em `http://127.0.0.1:5173` e encaminha requisições para o backend definido em `VITE_API_BASE_URL` (padrão: `http://127.0.0.1:8000`).
 
-```bash
-# frontend/.env
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
+Para gerar o build de produção:
 
-To produce a static production build:
-
-```bash
+```powershell
 npm run build
 npm run preview
 ```
 
-### Deploying to Render
+## Variáveis de ambiente
 
-#### Backend (Flask API)
+Crie arquivos `.env` a partir dos exemplos existentes:
 
-O arquivo `render.yaml` já descreve o serviço web Python:
+```bash
+# backend/.env
+export GEMINI_API_KEY="sua-chave"
 
-1. Faça push do repositório para o GitHub.
-2. No Render, escolha **New → Blueprint**, informe a URL do repositório e confirme.
-3. Aceite o serviço `email-ai-sorter-backend` (tipo `web`, runtime `python`, `rootDir: backend`).
-4. Em **Environment → Secret Files & Variables**, defina pelo menos `GEMINI_API_KEY` (o blueprint já exporta `FLASK_DEBUG=false`).
-5. Deploy: o Render executará `pip install -r requirements.txt` e iniciará `gunicorn app:app --bind 0.0.0.0:$PORT`.
+# frontend/.env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
 
-#### Frontend (Vite SPA)
+Outras variáveis úteis no backend:
 
-Crie um site estático separado apontando para a pasta `frontend/`:
+- `FLASK_HOST` e `FLASK_PORT` para sobrescrever host/porta locais.
+- `PORT` (Render, Railway etc.) para respeitar a porta dinâmica.
 
-1. Em **New → Static Site**, selecione o mesmo repositório.
-2. Configure:
-	- **Root Directory:** `frontend`
-	- **Build Command:** `npm install && npm run build`
-	- **Publish Directory:** `dist`
-3. Adicione a variável `VITE_API_BASE_URL` com o domínio público do backend (ex.: `https://email-ai-sorter-backend.onrender.com`).
-4. Deploy para publicar a SPA.
+## Testes automatizados
 
-> Dica: após o backend estar ativo, copie a URL mostrada em **Dashboard → email-ai-sorter-backend → Overview** e use-a na variável do frontend.
+- Backend: `python -m pytest`
+- Frontend: `npm run lint`
 
-#### Pós-deploy
+Recomendado executar os testes antes de abrir PRs ou fazer deploy.
 
-- Verifique `/info` no backend para confirmar o funcionamento.
-- Abra o domínio do frontend para validar uploads e classificação.
-- Sempre mantenha as variáveis `.env` fora do controle de versão; use os exemplos fornecidos para replicar localmente.
