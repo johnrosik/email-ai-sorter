@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #050505;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #f8fafc;
+}
+
+.twinkle-layer {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 140px 140px;
+  animation: twinkle-scroll 36s linear infinite alternate;
+  will-change: background-position, opacity;
+}
+
+.floating-orb {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.85;
+  animation: orb-drift 34s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+.floating-ray {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  filter: blur(120px);
+  mix-blend-mode: screen;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+  opacity: 0.2;
+  animation: ray-drift 44s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes twinkle-scroll {
+  0% {
+    background-position: 0 0;
+    opacity: 0.75;
+  }
+  50% {
+    background-position: 60px 30px;
+    opacity: 0.55;
+  }
+  100% {
+    background-position: 120px 60px;
+    opacity: 0.8;
+  }
+}
+
+@keyframes orb-drift {
+  0% {
+    transform: translate3d(-6%, -4%, 0) scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate3d(3%, 4%, 0) scale(1.02);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(7%, 6%, 0) scale(1);
+    opacity: 0.75;
+  }
+}
+
+@keyframes ray-drift {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(0.92);
+    opacity: 0.18;
+  }
+  100% {
+    transform: translate3d(4%, 2%, 0) scale(1.05);
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twinkle-layer,
+  .floating-orb,
+  .floating-ray {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
