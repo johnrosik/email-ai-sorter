@@ -1,5 +1,7 @@
+import base64
 import json
 from os import getenv
+from typing import Any
 
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -85,6 +87,105 @@ def _build_prompt(email_text: str) -> str:
 
 
 # Consolida o texto retornado pela API, tratando diferentes formatos de resposta do Gemini.
+def _safe_json_dumps(data: Any) -> str:
+    try:
+        return json.dumps(data, ensure_ascii=False)
+    except TypeError:
+        return str(data)
+
+
+def _string_segment(value: Any) -> list[str]:
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped:
+            return [stripped]
+    return []
+
+
+def _json_segment(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return _string_segment(value)
+    try:
+        return _string_segment(_safe_json_dumps(value))
+    except Exception:
+        return _string_segment(str(value))
+
+
+def _function_call_segments(function_call) -> list[str]:
+    if not function_call:
+        return []
+
+    payload = getattr(function_call, "args", None) or getattr(function_call, "arguments", None)
+    segments = _json_segment(payload)
+    if segments:
+        return segments
+
+    name = getattr(function_call, "name", None)
+    return _json_segment({"function_call": name}) if name else []
+
+
+def _function_response_segments(function_response) -> list[str]:
+    if not function_response:
+        return []
+
+    response_payload = getattr(function_response, "response", None)
+    segments = _json_segment(response_payload)
+    if segments:
+        return segments
+
+    name = getattr(function_response, "name", None)
+    return _json_segment({"function_response": name}) if name else []
+
+
+def _inline_data_segments(inline_data) -> list[str]:
+    if not inline_data:
+        return []
+
+    raw_data = getattr(inline_data, "data", None)
+    if not raw_data:
+        return []
+
+    try:
+        decoded = base64.b64decode(raw_data).decode("utf-8", errors="replace")
+    except Exception:
+        decoded = str(raw_data)
+    return _string_segment(decoded)
+
+
+def _fallback_part_segments(part) -> list[str]:
+    to_dict = getattr(part, "to_dict", None)
+    if callable(to_dict):
+        try:
+            return _json_segment(to_dict())
+        except Exception:
+            return _string_segment(str(part))
+    return _string_segment(str(part))
+
+
+def _extract_text_segments_from_part(part) -> list[str]:
+    segments: list[str] = []
+    segments.extend(_string_segment(getattr(part, "text", None)))
+    segments.extend(_function_call_segments(getattr(part, "function_call", None)))
+    segments.extend(_function_response_segments(getattr(part, "function_response", None)))
+    segments.extend(_inline_data_segments(getattr(part, "inline_data", None)))
+
+    return segments if segments else _fallback_part_segments(part)
+
+
+def _candidate_text_segments(candidate) -> list[str]:
+    content = getattr(candidate, "content", None)
+    content_parts = getattr(content, "parts", None) if content else None
+    if not content_parts:
+        return []
+
+    segments: list[str] = []
+    for part in content_parts:
+        segments.extend(_extract_text_segments_from_part(part))
+    return segments
+
+
 def _collect_response_text(response) -> str:
     quick_text = ""
     try:
@@ -96,19 +197,9 @@ def _collect_response_text(response) -> str:
     if text:  # Se houver texto pronto
         return text  # Retorna imediatamente a string
 
-    candidates = getattr(response, "candidates", None) or []  # Caso contrário, examina os candidatos alternativos
-    parts: list[str] = []
-    for candidate in candidates:
-        content = getattr(candidate, "content", None)
-        content_parts = getattr(content, "parts", None) if content else None
-        if not content_parts:
-            continue
-
-        for part in content_parts:
-            part_text = getattr(part, "text", None)
-            if part_text:
-                parts.append(part_text)  # Armazena para concatenar depois
-    return "\n".join(part.strip() for part in parts if part).strip()  # Junta e limpa todas as partes em uma única string
+    candidates = getattr(response, "candidates", None) or []
+    segments = [segment for candidate in candidates for segment in _candidate_text_segments(candidate)]
+    return "\n".join(segments).strip()
 
 
 def _format_enum_value(value) -> str:
@@ -148,6 +239,69 @@ def _candidate_block_reason(response) -> str | None:
         return ", ".join(ordered_unique)
 
     return None
+
+
+def _describe_part(part) -> dict[str, Any]:
+    descriptor: dict[str, Any] = {"repr": str(part)}
+
+    text_value = getattr(part, "text", None)
+    if isinstance(text_value, str) and text_value.strip():
+        descriptor["text_preview"] = text_value.strip()[:160]
+
+    function_call = getattr(part, "function_call", None)
+    if function_call:
+        descriptor["function_call"] = {
+            "name": getattr(function_call, "name", None),
+            "has_args": bool(getattr(function_call, "args", None) or getattr(function_call, "arguments", None)),
+        }
+
+    inline_data = getattr(part, "inline_data", None)
+    if inline_data:
+        data = getattr(inline_data, "data", None)
+        descriptor["inline_data"] = {
+            "mime_type": getattr(inline_data, "mime_type", None),
+            "data_length": len(data) if data else 0,
+        }
+
+    function_response = getattr(part, "function_response", None)
+    if function_response:
+        descriptor["function_response"] = {
+            "name": getattr(function_response, "name", None),
+            "has_response": bool(getattr(function_response, "response", None)),
+        }
+
+    return descriptor
+
+
+def _candidate_debug_snapshot(response) -> list[dict[str, Any]]:
+    snapshot: list[dict[str, Any]] = []
+
+    for candidate in getattr(response, "candidates", None) or []:
+        candidate_info: dict[str, Any] = {}
+
+        finish_reason = getattr(candidate, "finish_reason", None)
+        if finish_reason:
+            candidate_info["finish_reason"] = _format_enum_value(finish_reason)
+
+        safety_ratings = getattr(candidate, "safety_ratings", None) or []
+        if safety_ratings:
+            candidate_info["safety_ratings"] = [
+                {
+                    "category": _format_enum_value(getattr(rating, "category", "")),
+                    "blocked": getattr(rating, "blocked", False),
+                    "probability": _format_enum_value(getattr(rating, "probability", "")),
+                }
+                for rating in safety_ratings
+            ]
+
+        content = getattr(candidate, "content", None)
+        parts = getattr(content, "parts", None) if content else None
+        if parts:
+            candidate_info["parts"] = [_describe_part(part) for part in parts]
+
+        snapshot.append(candidate_info)
+
+    return snapshot
 
 
 # Valida e converte o JSON retornado pelo modelo, diferenciando sucesso de respostas inválidas.
@@ -211,6 +365,10 @@ def analisar_email(texto_email: str) -> dict:
             block_reason = _candidate_block_reason(response)
             if block_reason:
                 return _prompt_blocked_response(block_reason)
+
+            debug_snapshot = _candidate_debug_snapshot(response)
+            extra = {"candidate_debug": debug_snapshot} if debug_snapshot else None
+            return _error_payload("Empty response from Gemini model", "empty_response", extra)
 
         parsed_payload, error_payload = _parse_response_payload(response_text)
         if parsed_payload is not None:
