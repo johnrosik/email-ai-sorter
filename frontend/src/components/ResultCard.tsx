@@ -57,8 +57,13 @@ export function ResultCard({ result, isLoading, error }: ResultCardProps) {
 
   if (isLoading) {
     return (
-      <section className="mt-6 max-w-md rounded-lg border border-brand-500/30 bg-slate-900/70 p-4 text-xs text-slate-200 shadow-lg shadow-brand-900/10">
-        <p className="animate-pulse text-brand-200">Analisando o e-mail e gerando uma resposta...</p>
+      <section className="mt-8 flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-3xl border border-brand-400/30 bg-black/70 p-8 text-center text-slate-200 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-brand-400/30 border-t-brand-200/90 animate-spin" aria-hidden="true" />
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Processando</p>
+          <p className="text-base font-medium text-brand-100 animate-pulse">Analisando o e-mail e gerando uma resposta...</p>
+          <p className="text-xs text-slate-400/80">Isso pode levar alguns segundos.</p>
+        </div>
       </section>
     );
   }
