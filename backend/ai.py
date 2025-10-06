@@ -1,15 +1,14 @@
 import json
-from os import getenv 
+from os import getenv
 
-import google.generativeai as genai 
-from dotenv import load_dotenv  
+import google.generativeai as genai
+from dotenv import load_dotenv
 from google.api_core.exceptions import GoogleAPIError, InvalidArgument, ResourceExhausted
-
 
 load_dotenv()
 
 
-_model: genai.GenerativeModel | None = None 
+_model: genai.GenerativeModel | None = None
 
 # Mensagem de erro da falta da chave da API.
 _missing_key_message = (
@@ -26,10 +25,10 @@ class _MissingAPIKeyError(RuntimeError):
 def _error_payload(reason: str, code: str, extra: dict | None = None) -> dict:
     payload = {
         "reason": reason, #Retorna o erro descritivo, junto do código como "missing_api_key" ou algum erro da API
-        "error": code, 
+        "error": code,
     }
     if extra:
-        payload.update(extra) 
+        payload.update(extra)
     return payload
 
 
@@ -87,22 +86,68 @@ def _build_prompt(email_text: str) -> str:
 
 # Consolida o texto retornado pela API, tratando diferentes formatos de resposta do Gemini.
 def _collect_response_text(response) -> str:
-    text = (getattr(response, "text", "") or "").strip()
+    quick_text = ""
+    try:
+        quick_text = getattr(response, "text", "")
+    except Exception:
+        quick_text = ""
+
+    text = (quick_text or "").strip()
     if text:  # Se houver texto pronto
         return text  # Retorna imediatamente a string
 
     candidates = getattr(response, "candidates", None) or []  # Caso contrário, examina os candidatos alternativos
     parts: list[str] = []
-    for candidate in candidates: 
-        content = getattr(candidate, "content", None) 
-        content_parts = getattr(content, "parts", None) if content else None 
-        if not content_parts: 
-            continue  
-        for part in content_parts: 
-            part_text = getattr(part, "text", None) 
-            if part_text: 
-                parts.append(part_text)
+    for candidate in candidates:
+        content = getattr(candidate, "content", None)
+        content_parts = getattr(content, "parts", None) if content else None
+        if not content_parts:
+            continue
+
+        for part in content_parts:
+            part_text = getattr(part, "text", None)
+            if part_text:
+                parts.append(part_text)  # Armazena para concatenar depois
     return "\n".join(part.strip() for part in parts if part).strip()  # Junta e limpa todas as partes em uma única string
+
+
+def _format_enum_value(value) -> str:
+    if hasattr(value, "name"):
+        return str(value.name)
+    return str(value)
+
+
+def _candidate_block_reason(response) -> str | None:
+    candidates = getattr(response, "candidates", None) or []
+    reasons: list[str] = []
+
+    for candidate in candidates:
+        finish_reason = getattr(candidate, "finish_reason", None)
+        if finish_reason:
+            finish_reason_str = _format_enum_value(finish_reason).upper()
+            if "SAFETY" in finish_reason_str and finish_reason_str not in reasons:
+                reasons.append(finish_reason_str)
+
+        for rating in getattr(candidate, "safety_ratings", None) or []:
+            blocked = getattr(rating, "blocked", False)
+            probability = _format_enum_value(getattr(rating, "probability", ""))
+            category = _format_enum_value(getattr(rating, "category", ""))
+            probability_clean = probability.split(".")[-1].replace("_", " ").title()
+            category_clean = category.split(".")[-1].replace("_", " ").title()
+
+            if blocked or probability_clean.upper() in {"VERY LIKELY", "HIGH", "LIKELY"}:
+                reasons.append(f"{category_clean} ({probability_clean})")
+
+    if reasons:
+        seen: set[str] = set()
+        ordered_unique: list[str] = []
+        for reason in reasons:
+            if reason not in seen:
+                seen.add(reason)
+                ordered_unique.append(reason)
+        return ", ".join(ordered_unique)
+
+    return None
 
 
 # Valida e converte o JSON retornado pelo modelo, diferenciando sucesso de respostas inválidas.
@@ -127,7 +172,7 @@ def _parse_response_payload(response_text: str) -> tuple[dict | None, dict | Non
         )
 
     payload.setdefault("keywords", [])
-    payload.setdefault("reply", "")  
+    payload.setdefault("reply", "")
 
     return payload, None  # Retorna payload válido e indica ausência de erros
 
@@ -141,7 +186,7 @@ def _prompt_blocked_response(block_reason: str) -> dict:
 def analisar_email(texto_email: str) -> dict:
     try:
         model = _get_model()  # Recupera a instância configurada do Gemini
-    except _MissingAPIKeyError: 
+    except _MissingAPIKeyError:
         return _error_payload(_missing_key_message, "missing_api_key")
 
     try:
@@ -162,10 +207,18 @@ def analisar_email(texto_email: str) -> dict:
             return _prompt_blocked_response(feedback.block_reason)
 
         response_text = _collect_response_text(response)
-        parsed_payload, error_payload = _parse_response_payload(response_text)
-        return parsed_payload if parsed_payload is not None else error_payload
+        if not response_text:
+            block_reason = _candidate_block_reason(response)
+            if block_reason:
+                return _prompt_blocked_response(block_reason)
 
-    except ResourceExhausted as e:  
+        parsed_payload, error_payload = _parse_response_payload(response_text)
+        if parsed_payload is not None:
+            return parsed_payload
+
+        return error_payload or _error_payload("Empty response from Gemini model", "empty_response")
+
+    except ResourceExhausted as e:
         return _error_payload(f"Gemini quota exceeded: {str(e)}", "quota_exceeded")
 
     except InvalidArgument as e:
