@@ -52,7 +52,7 @@ def _get_model() -> genai.GenerativeModel:
             "models/gemini-2.5-flash", 
             generation_config={
                 "temperature": 0.3, #Aleatoriedade controlada das respostas
-                "max_output_tokens": 2048,
+                "max_output_tokens": 4096,
                 "response_mime_type": "application/json",
             },
         )
