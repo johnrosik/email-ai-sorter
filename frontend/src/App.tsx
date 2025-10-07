@@ -286,7 +286,7 @@ export default function App() {
                 IA
               </span>
               <span className="uppercase text-slate-300/80">
-                R<span className="font-black text-white">O</span>SIAK
+                r<span className="font-black text-white">OS</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text font-black text-transparent">IA</span>k
               </span>
             </span>
             <span className="text-sm font-semibold text-slate-300">
@@ -336,7 +336,7 @@ export default function App() {
                     IA
                   </span>
                   <span className="tracking-[0.45em] text-white/90">
-                    R<span className="font-black text-white">O</span>SIAK
+                    r<span className="font-black text-white">OS</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text font-black text-transparent">IA</span>k
                   </span>
                 </span>
               </span>
@@ -391,7 +391,7 @@ export default function App() {
           >
             <motion.div variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0 } }}>
               <h2 className="text-3xl font-semibold text-white">
-                Por que <span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text text-transparent">IA</span> ROSIAK?
+                Por que <span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text text-transparent">ros</span><span className="bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 bg-clip-text font-black uppercase text-transparent">IA</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text text-transparent">k?</span>
               </h2>
               <p className="mt-4 text-sm text-slate-300/80">
                 Em um mundo cada vez mais tecnológico e acelerado, a Roisak coloca a inteligência artificial no centro da sua
