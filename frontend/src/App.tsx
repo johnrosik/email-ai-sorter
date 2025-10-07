@@ -285,7 +285,9 @@ export default function App() {
               <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 px-4 py-1 text-[0.7rem] font-black uppercase leading-none text-black shadow-[0_15px_40px_rgba(255,193,7,0.45)]">
                 IA
               </span>
-              <span className="uppercase text-slate-300/80">do Rosiak</span>
+              <span className="uppercase text-slate-300/80">
+                R<span className="font-black text-white">O</span>SIAK
+              </span>
             </span>
             <span className="text-sm font-semibold text-slate-300">
               Email <span className="bg-gradient-to-r from-brand-400 to-amber-200 bg-clip-text text-transparent">IA</span> Classifier 1.0
@@ -333,7 +335,9 @@ export default function App() {
                   <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 px-8 py-3 text-4xl font-black leading-none text-black shadow-[0_35px_90px_rgba(255,193,7,0.35)]">
                     IA
                   </span>
-                  <span className="tracking-[0.45em] text-white/90">do Rosiak</span>
+                  <span className="tracking-[0.45em] text-white/90">
+                    R<span className="font-black text-white">O</span>SIAK
+                  </span>
                 </span>
               </span>
               <span className="mt-6 block text-lg font-light text-slate-300 sm:text-xl">
@@ -386,7 +390,9 @@ export default function App() {
             }}
           >
             <motion.div variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0 } }}>
-              <h2 className="text-3xl font-semibold text-white">Por que IA do Rosiak?</h2>
+              <h2 className="text-3xl font-semibold text-white">
+                Por que <span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text text-transparent">IA</span> ROSIAK?
+              </h2>
               <p className="mt-4 text-sm text-slate-300/80">
                 Em um mundo cada vez mais tecnológico e acelerado, a Roisak coloca a inteligência artificial no centro da sua
                 produtividade. A plataforma interpreta sinais, prioriza tarefas e transforma caixas de entrada caóticas em
