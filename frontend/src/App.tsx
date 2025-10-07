@@ -281,13 +281,8 @@ export default function App() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/10 bg-black/60 px-6 py-3 backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-3 text-xs tracking-[0.32em] text-slate-200">
-              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 px-4 py-1 text-[0.7rem] font-black uppercase leading-none text-black shadow-[0_15px_40px_rgba(255,193,7,0.45)]">
-                IA
-              </span>
-              <span className="uppercase text-slate-300/80">
-                r<span className="font-black text-white">OS</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text font-black text-transparent">IA</span>k
-              </span>
+            <span className="text-xs uppercase tracking-[0.32em] text-slate-300/80">
+              r<span className="font-black text-white">OS</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text font-black text-transparent">IA</span>k
             </span>
             <span className="text-sm font-semibold text-slate-300">
               Email <span className="bg-gradient-to-r from-brand-400 to-amber-200 bg-clip-text text-transparent">IA</span> Classifier 1.0
