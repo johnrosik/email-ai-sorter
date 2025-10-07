@@ -280,9 +280,16 @@ export default function App() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/10 bg-black/60 px-6 py-3 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <span className="text-xs uppercase tracking-[0.4em] text-brand-200">Rosiak</span>
-            <span className="text-sm font-semibold text-slate-300">Email IA Classifier 1.0</span>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-3 text-xs tracking-[0.32em] text-slate-200">
+              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 px-4 py-1 text-[0.7rem] font-black uppercase leading-none text-black shadow-[0_15px_40px_rgba(255,193,7,0.45)]">
+                IA
+              </span>
+              <span className="uppercase text-slate-300/80">do Rosiak</span>
+            </span>
+            <span className="text-sm font-semibold text-slate-300">
+              Email <span className="bg-gradient-to-r from-brand-400 to-amber-200 bg-clip-text text-transparent">IA</span> Classifier 1.0
+            </span>
           </div>
 
           <ul className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.35em] text-slate-300">
@@ -320,9 +327,14 @@ export default function App() {
             <motion.h1 className="font-black leading-tight">
               <span
                 ref={heroTitleRef}
-                className="block text-[clamp(3rem,8vw,6rem)] uppercase tracking-[0.45em] text-brand-300 drop-shadow-[0_0_45px_rgba(255,215,0,0.55)]"
+                className="block text-[clamp(3rem,8vw,6rem)] tracking-[0.2em] text-brand-300 drop-shadow-[0_0_45px_rgba(255,215,0,0.55)]"
               >
-                Rosiak
+                <span className="inline-flex flex-wrap items-center justify-center gap-6 uppercase">
+                  <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 px-8 py-3 text-4xl font-black leading-none text-black shadow-[0_35px_90px_rgba(255,193,7,0.35)]">
+                    IA
+                  </span>
+                  <span className="tracking-[0.45em] text-white/90">do Rosiak</span>
+                </span>
               </span>
               <span className="mt-6 block text-lg font-light text-slate-300 sm:text-xl">
                 A central de produtividade que impulsiona suas decisões com IA em tempo real.
@@ -374,7 +386,7 @@ export default function App() {
             }}
           >
             <motion.div variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0 } }}>
-              <h2 className="text-3xl font-semibold text-white">Por que Roisak?</h2>
+              <h2 className="text-3xl font-semibold text-white">Por que IA do Rosiak?</h2>
               <p className="mt-4 text-sm text-slate-300/80">
                 Em um mundo cada vez mais tecnológico e acelerado, a Roisak coloca a inteligência artificial no centro da sua
                 produtividade. A plataforma interpreta sinais, prioriza tarefas e transforma caixas de entrada caóticas em
