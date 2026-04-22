@@ -35,6 +35,7 @@ export interface GmailAnalyzedMessage {
   from: string;
   date: string;
   snippet: string;
+  body_text: string;
   classification: ClassificationResponse;
 }
 

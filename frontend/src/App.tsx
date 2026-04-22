@@ -715,11 +715,42 @@ export default function App() {
                     <div key={item.id} className="rounded-2xl bg-[#11472f] p-4">
                       <p className="text-sm font-semibold text-slate-100">{item.subject || "(Sem assunto)"}</p>
                       <p className="mt-1 text-xs text-slate-200/75">{item.from}</p>
+                      <p className="mt-1 text-xs text-slate-200/65">{item.date || "Data não informada"}</p>
                       <p className="mt-2 text-xs text-slate-200/70">{item.snippet}</p>
+                      {item.body_text && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.2em] text-brand-100/90">
+                            Ver conteúdo do e-mail
+                          </summary>
+                          <p className="mt-2 whitespace-pre-wrap rounded-xl bg-[#0b3b28] p-3 text-xs leading-relaxed text-slate-100/90">
+                            {item.body_text}
+                          </p>
+                        </details>
+                      )}
                       <p className="mt-2 text-xs text-brand-100/90">
                         Classificação: {item.classification.productive === null ? "Inconclusivo" : item.classification.productive ? "Produtivo" : "Não produtivo"}
                         {typeof item.classification.confidence === "number" ? ` (${(item.classification.confidence * 100).toFixed(0)}%)` : ""}
                       </p>
+                      {item.classification.reason && (
+                        <p className="mt-2 text-xs text-slate-100/85">
+                          Motivo: {item.classification.reason}
+                        </p>
+                      )}
+                      {item.classification.keywords && item.classification.keywords.length > 0 && (
+                        <p className="mt-2 text-xs text-slate-100/80">
+                          Palavras-chave: {item.classification.keywords.join(", ")}
+                        </p>
+                      )}
+                      {item.classification.reply && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.2em] text-brand-100/90">
+                            Ver resposta sugerida
+                          </summary>
+                          <p className="mt-2 whitespace-pre-wrap rounded-xl bg-[#0b3b28] p-3 text-xs leading-relaxed text-slate-100/90">
+                            {item.classification.reply}
+                          </p>
+                        </details>
+                      )}
                     </div>
                   ))}
                 </div>

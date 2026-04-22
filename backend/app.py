@@ -418,6 +418,7 @@ def gmail_analyze_inbox():
             payload_data = full_message.get("payload", {})
             headers = _parse_gmail_headers(payload_data)
             snippet = str(full_message.get("snippet", "")).strip()
+            body_text = _extract_text_from_payload(payload_data).strip()
 
             classification_input = _format_message_for_classification(full_message)
             classification = analisar_email(classification_input)
@@ -430,6 +431,7 @@ def gmail_analyze_inbox():
                     "from": headers.get("from", ""),
                     "date": headers.get("date", ""),
                     "snippet": snippet,
+                    "body_text": body_text[:8000],
                     "classification": {
                         "productive": classification.get("productive"),
                         "confidence": classification.get("confidence"),
