@@ -56,7 +56,7 @@ export default function App() {
     messages_total: null
   });
   const [gmailQuery, setGmailQuery] = useState("in:inbox newer_than:7d");
-  const [gmailMaxResults, setGmailMaxResults] = useState(5);
+  const [gmailMaxResults, setGmailMaxResults] = useState(1);
   const [gmailItems, setGmailItems] = useState<GmailAnalyzedMessage[]>([]);
   const [isGmailLoading, setIsGmailLoading] = useState(false);
   const heroTitleRef = useRef<HTMLSpanElement>(null);
@@ -687,6 +687,7 @@ export default function App() {
                     onChange={(event) => setGmailMaxResults(Number(event.target.value))}
                     className="rounded-2xl bg-[#11472f] px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/40"
                   >
+                    <option value={1}>1 email</option>
                     <option value={3}>3 emails</option>
                     <option value={5}>5 emails</option>
                     <option value={10}>10 emails</option>
