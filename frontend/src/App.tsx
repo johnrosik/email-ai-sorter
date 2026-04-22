@@ -14,7 +14,7 @@ const SAMPLE_EMAILS = [
   "Oi time financeiro, podem validar se a nota fiscal 2389 já foi conciliada? O fornecedor está cobrando um posicionamento ainda hoje.",
   "Olá suporte, cliente relatou instabilidade no painel desde às 14h. Podem investigar e me enviar um diagnóstico inicial?",
   "Boa tarde, estou preparando o material do workshop e preciso de três estudos de caso recentes sobre automação de e-mails.",
-  "Pessoal, conseguimos antecipar a entrega da campanha? O marketing precisa aprovar os textos finais até sexta-feira." 
+  "Pessoal, conseguimos antecipar a entrega da campanha? O marketing precisa aprovar os textos finais até sexta-feira."
 ];
 
 const NAV_ITEMS = [
@@ -133,7 +133,7 @@ export default function App() {
       );
 
       gsap.to(titleEl, {
-        textShadow: "0 0 32px rgba(255, 215, 0, 0.85)",
+        textShadow: "0 0 34px rgba(84, 247, 173, 0.7)",
         duration: 2.8,
         repeat: -1,
         yoyo: true,
@@ -166,7 +166,8 @@ export default function App() {
     setResult(null);
     setError(null);
     setActiveHistoryId(null);
-  setIsHistoryModalOpen(false);
+    setIsHistoryModalOpen(false);
+
     try {
       const data = await classifyEmail({ emailText: trimmedText, file: selectedFile });
       if (data.error) {
@@ -269,7 +270,7 @@ export default function App() {
   const handleHistoryDetailClose = useCallback(() => setIsHistoryModalOpen(false), []);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-black text-slate-100">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#03130d] text-slate-100">
       <AnimatedBackground />
 
       <motion.nav
@@ -279,13 +280,11 @@ export default function App() {
         animate={navHidden ? "hidden" : "visible"}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/10 bg-black/60 px-6 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full bg-[#0a3a27]/90 px-6 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.32)] backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <span className="text-xs uppercase tracking-[0.32em] text-slate-300/80">
-              r<span className="font-black text-white">OS</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text font-black text-transparent">IA</span>k
-            </span>
-            <span className="text-sm font-semibold text-slate-300">
-              Email <span className="bg-gradient-to-r from-brand-400 to-amber-200 bg-clip-text text-transparent">IA</span> Classifier 1.0
+            <span className="brand-font text-xs uppercase tracking-[0.32em] text-brand-100/90">imu classifier</span>
+            <span className="text-sm font-semibold text-slate-200">
+              Imu <span className="bg-gradient-to-r from-brand-300 to-brand-100 bg-clip-text text-transparent">Email Classifier</span>
             </span>
           </div>
 
@@ -294,7 +293,7 @@ export default function App() {
               <motion.li key={item.href} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
                 <a
                   href={item.href}
-                  className="rounded-full px-4 py-2 text-slate-200 transition hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60"
+                  className="rounded-full px-4 py-2 text-slate-200 transition hover:bg-brand-500/30 hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60"
                 >
                   {item.label}
                 </a>
@@ -313,57 +312,52 @@ export default function App() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.span
-              className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-brand-200"
+              className="inline-flex rounded-full bg-brand-500/25 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-brand-100 shadow-[0_6px_20px_rgba(0,0,0,0.2)]"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
             >
-              Email IA Classifier 1.0
+              Imu Email Classifier
             </motion.span>
 
-            <motion.h1 className="font-black leading-tight">
+            <motion.h1 className="brand-font font-bold leading-tight">
               <span
                 ref={heroTitleRef}
-                className="block text-[clamp(3rem,8vw,6rem)] tracking-[0.2em] text-brand-300 drop-shadow-[0_0_45px_rgba(255,215,0,0.55)]"
+                className="imu-display block text-[clamp(3.4rem,11vw,8rem)] font-extrabold drop-shadow-[0_0_45px_rgba(84,247,173,0.55)]"
               >
-                <span className="inline-flex flex-wrap items-center justify-center gap-6 uppercase">
-                  <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-500 via-amber-300 to-yellow-200 px-8 py-3 text-4xl font-black leading-none text-black shadow-[0_35px_90px_rgba(255,193,7,0.35)]">
-                    IA
-                  </span>
-                  <span className="tracking-[0.45em] text-white/90">
-                    r<span className="font-black text-white">OS</span><span className="bg-gradient-to-r from-brand-400 via-amber-200 to-yellow-100 bg-clip-text font-black text-transparent">IA</span>k
-                  </span>
-                </span>
+                Imu Email Classifier
               </span>
-              <span className="mt-6 block text-lg font-light text-slate-300 sm:text-xl">
-                A central de produtividade que impulsiona suas decisões com IA em tempo real.
+              <span className="mt-5 block text-[clamp(1.4rem,3.6vw,2.3rem)] font-semibold text-brand-100">
+                Confiança para priorizar cada email com IA
+              </span>
+              <span className="mt-6 block text-lg font-medium text-slate-200/90 sm:text-xl">
+                Imu transforma sua caixa de entrada em decisões claras e acionáveis.
               </span>
             </motion.h1>
 
             <motion.p
-              className="mx-auto max-w-2xl text-base text-slate-300/80"
+              className="mx-auto max-w-2xl text-base text-slate-200/80"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
             >
-              Descubra em segundos se um email é produtivo, o grau de confiabilidade do julgamento da IA e receba uma resposta sugerida
-              pronta para agir com profissionalismo.
+              Classifique produtividade, entenda o contexto com transparência e acelere respostas sem perder o toque humano.
             </motion.p>
 
             <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
               <motion.button
                 type="button"
                 onClick={handleStart}
-                className="group inline-flex items-center gap-3 rounded-full bg-brand-500 px-7 py-3 text-sm font-semibold uppercase tracking-[0.35em] text-black shadow-[0_20px_60px_rgba(212,136,7,0.35)] transition hover:bg-brand-400 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60"
+                className="group inline-flex items-center gap-3 rounded-full bg-brand-500 px-7 py-3 text-sm font-semibold uppercase tracking-[0.35em] text-[#032112] shadow-[0_20px_60px_rgba(24,187,112,0.35)] transition hover:bg-brand-400 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.96 }}
               >
-                Start
+                Começar
                 <span className="text-base">→</span>
               </motion.button>
               <motion.a
                 href="#about"
-                className="inline-flex items-center rounded-full border border-white/10 bg-transparent px-7 py-3 text-sm font-semibold uppercase tracking-[0.35em] text-slate-200 transition hover:border-brand-300 hover:text-brand-300 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60"
+                className="inline-flex items-center rounded-full bg-[#0b3b28] px-7 py-3 text-sm font-semibold uppercase tracking-[0.35em] text-brand-100 shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition hover:bg-[#104a33] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.96 }}
               >
@@ -373,7 +367,7 @@ export default function App() {
           </motion.div>
         </section>
 
-        <section id="about" className="relative rounded-3xl border border-white/5 bg-white/5 p-10 backdrop-blur-xl">
+        <section id="about" className="relative rounded-3xl bg-[#0a3725]/88 p-10 shadow-[0_28px_70px_rgba(0,0,0,0.32)] backdrop-blur-md">
           <motion.div
             className="grid gap-8 md:grid-cols-2"
             initial="hidden"
@@ -385,28 +379,28 @@ export default function App() {
             }}
           >
             <motion.div variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0 } }}>
-              <h2 className="text-3xl font-semibold text-white">
-             Rosiak
-              </h2>
-              <p className="mt-4 text-sm text-slate-300/80">
-                Em um mundo cada vez mais tecnológico e acelerado, a Roisak coloca a inteligência artificial no centro da sua
-                produtividade. A plataforma interpreta sinais, prioriza tarefas e transforma caixas de entrada caóticas em
-                decisões rápidas. Com automação elegante e insights imediatos, o seu time ganha foco, reduz ruídos e entrega
-                resultados com eficiência profundamente moderna.
+              <h2 className="brand-font text-3xl font-semibold text-brand-100">Imu Email Classifier</h2>
+              <p className="mt-4 text-sm leading-relaxed text-slate-100/90">
+                O Imu nasceu para resolver um problema simples: caixa de entrada cheia e pouca clareza sobre o que merece atenção agora.
+                Em vez de só marcar emails como bons ou ruins, ele te entrega contexto para decidir rápido, com segurança.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-100/85">
+                A ideia é ajudar sua rotina real: priorizar o que move trabalho, reduzir distrações e manter um padrão de resposta profissional,
+                mesmo nos dias mais corridos.
               </p>
             </motion.div>
             <motion.ul
-              className="space-y-4 text-sm text-slate-200/90"
+              className="space-y-4 text-sm text-slate-100/95"
               variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0 } }}
             >
-              <li className="rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_20px_45px_rgba(0,0,0,0.45)]">
-                <span className="text-brand-200">•</span> Insights instantâneos sobre produtividade de cada email.
+              <li className="rounded-2xl bg-[#0d422d] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.24)]">
+                <span className="text-brand-300">•</span> Classificação prática para separar urgência real de ruído.
               </li>
-              <li className="rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_20px_45px_rgba(0,0,0,0.45)]">
-                <span className="text-brand-200">•</span> Confiabilidade detalhada para tomar decisões com segurança.
+              <li className="rounded-2xl bg-[#0d422d] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.24)]">
+                <span className="text-brand-300">•</span> Nível de confiança para você decidir sem depender de "achismo".
               </li>
-              <li className="rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_20px_45px_rgba(0,0,0,0.45)]">
-                <span className="text-brand-200">•</span> Sugestão de resposta pronta para enviar ou adaptar ao seu tom.
+              <li className="rounded-2xl bg-[#0d422d] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.24)]">
+                <span className="text-brand-300">•</span> Sugestão de resposta pronta para agilizar o atendimento diário.
               </li>
             </motion.ul>
           </motion.div>
@@ -414,9 +408,9 @@ export default function App() {
 
         <section
           id="production"
-          className="relative overflow-hidden rounded-3xl shadow-[0_45px_120px_rgba(0,0,0,0.65)] backdrop-blur-2xl"
+          className="relative overflow-hidden rounded-3xl bg-[#082f20]/90 shadow-[0_45px_120px_rgba(0,0,0,0.55)] backdrop-blur-xl"
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_160%_at_top,rgba(240,178,29,0.08),transparent_65%),_linear-gradient(180deg,rgba(8,8,8,0.96),rgba(2,2,2,0.99))]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_160%_at_top,rgba(24,187,112,0.13),transparent_65%),_linear-gradient(180deg,rgba(6,35,23,0.94),rgba(2,17,11,0.98))]" />
 
           <div className="relative z-10 p-10">
             <motion.header
@@ -426,103 +420,99 @@ export default function App() {
               viewport={{ once: true, amount: 0.4 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-            <p className="inline-flex rounded-full border border-brand-400/50 bg-brand-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-brand-200">
-              Área de produção
-            </p>
-            <h2 className="text-3xl font-semibold text-white sm:text-4xl">Classifique seu email agora</h2>
-            <p className="mx-auto max-w-2xl text-sm text-slate-300/80">
-              Cole o conteúdo do email e receba imediatamente a avaliação de produtividade, o grau de confiança do modelo e uma
-              resposta sugerida para manter o fluxo profissional.
-            </p>
-          </motion.header>
+              <p className="inline-flex rounded-full bg-brand-500/25 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-brand-100 shadow-[0_5px_14px_rgba(0,0,0,0.22)]">
+                Área de produção
+              </p>
+              <h2 className="brand-font text-3xl font-semibold text-brand-50 sm:text-4xl">Classifique seu email agora</h2>
+              <p className="mx-auto max-w-2xl text-sm text-slate-200/80">
+                Cole o conteúdo do email e receba a avaliação de produtividade, nível de confiança do modelo e sugestão de
+                resposta para manter o fluxo profissional.
+              </p>
+            </motion.header>
 
-          <div className="mb-8 rounded-3xl border border-brand-400/20 bg-brand-500/10 p-4 text-sm text-brand-100/90">
-            <p className="text-xs uppercase tracking-[0.35em] text-brand-200/80">Aviso</p>
-            <p className="mt-2 text-[0.85rem] leading-relaxed text-slate-300/90">
-              A primeira resposta pode levar cerca de 50 segundos: pois esta é uma limitação da versão gratuita do Render e o servidor web é reativado
-              sob demanda quando fica em espera.
-            </p>
-          </div>
+            <div className="mb-8 rounded-3xl bg-[#0d422d] p-4 text-sm text-brand-100/90 shadow-[0_12px_30px_rgba(0,0,0,0.2)]">
+              <p className="text-xs uppercase tracking-[0.35em] text-brand-100/85">Aviso</p>
+              <p className="mt-2 text-[0.85rem] leading-relaxed text-slate-200/90">
+                A primeira resposta pode levar cerca de 50 segundos, pois a versão gratuita do Render reativa o backend sob
+                demanda após períodos de inatividade.
+              </p>
+            </div>
 
             <motion.form
-            onSubmit={handleSubmit}
-            className="space-y-6"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <label htmlFor="email-text" className="text-xs uppercase tracking-[0.35em] text-slate-400">
-                Conteúdo do email
-              </label>
-              <span className="text-xs uppercase tracking-[0.35em] text-slate-500">
-                {charactersRemaining} caracteres restantes
-              </span>
-            </div>
-            <textarea
-              id="email-text"
-              name="email-text"
-              value={emailText}
-              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEmailText(event.target.value)}
-              placeholder="Cole ou digite a mensagem aqui..."
-              className="h-64 w-full resize-y rounded-3xl border border-white/10 bg-white/5 p-6 text-base text-slate-100 shadow-inner shadow-black/60 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/40"
-              maxLength={5000}
-            />
-
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Upload de arquivo (opcional)</p>
-              <p className="mt-2 text-xs text-slate-500">
-                Formatos aceitos: <span className="text-slate-300">.txt</span> e <span className="text-slate-300">.pdf</span> (até 16MB)
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-4">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center justify-center rounded-full bg-white/10 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-200 transition hover:bg-white/20 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
-                >
-                  Selecionar arquivo
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".txt,.pdf"
-                  onChange={handleFileChange}
-                  className="sr-only"
-                />
-                <span className={`text-xs ${selectedFile ? "text-slate-200" : "text-slate-500"}`}>
-                  {selectedFile ? selectedFile.name : "Nenhum arquivo selecionado"}
+              onSubmit={handleSubmit}
+              className="space-y-6"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <label htmlFor="email-text" className="text-xs uppercase tracking-[0.35em] text-slate-300/80">
+                  Conteúdo do email
+                </label>
+                <span className="text-xs uppercase tracking-[0.35em] text-slate-400/80">
+                  {charactersRemaining} caracteres restantes
                 </span>
-                {selectedFile && (
+              </div>
+              <textarea
+                id="email-text"
+                name="email-text"
+                value={emailText}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEmailText(event.target.value)}
+                placeholder="Cole ou digite a mensagem aqui..."
+                className="h-64 w-full resize-y rounded-3xl bg-[#0d422d] p-6 text-base text-slate-100 shadow-inner shadow-black/35 outline-none transition focus:ring-2 focus:ring-brand-500/40"
+                maxLength={5000}
+              />
+
+              <div className="rounded-3xl bg-[#0d422d] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)]">
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-300/80">Upload de arquivo (opcional)</p>
+                <p className="mt-2 text-xs text-slate-400/90">
+                  Formatos aceitos: <span className="text-slate-200">.txt</span> e <span className="text-slate-200">.pdf</span>
+                  (até 16MB)
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-4">
                   <button
                     type="button"
-                    onClick={handleRemoveFile}
-                    className="inline-flex items-center justify-center rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-200 transition hover:border-brand-300 hover:text-brand-200 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center justify-center rounded-full bg-brand-500/28 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-100 transition hover:bg-brand-500/42 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
                   >
-                    Remover
+                    Selecionar arquivo
                   </button>
-                )}
+                  <input ref={fileInputRef} type="file" accept=".txt,.pdf" onChange={handleFileChange} className="sr-only" />
+                  <span className={`text-xs ${selectedFile ? "text-slate-100" : "text-slate-400"}`}>
+                    {selectedFile ? selectedFile.name : "Nenhum arquivo selecionado"}
+                  </span>
+                  {selectedFile && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="inline-flex items-center justify-center rounded-full bg-[#1a5f43] px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-100 transition hover:bg-[#227752] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={handleUseSample}
-                className="inline-flex items-center justify-center rounded-full border border-brand-400/50 bg-transparent px-6 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-brand-200 transition hover:border-brand-300 hover:text-brand-100 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
-              >
-                Usar exemplo aleatório
-              </button>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={handleUseSample}
+                  className="inline-flex items-center justify-center rounded-full bg-[#165339] px-6 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-brand-100 shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition hover:bg-[#1d6b48] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+                >
+                  Usar exemplo aleatório
+                </button>
 
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-full bg-brand-500 px-8 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-black shadow-[0_25px_65px_rgba(212,136,7,0.45)] transition hover:bg-brand-400 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60 disabled:cursor-not-allowed disabled:bg-brand-500/40"
-                disabled={isLoading}
-              >
-                {isLoading ? "Analisando..." : "Classificar"}
-              </button>
-            </div>
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-full bg-brand-500 px-8 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-[#032112] shadow-[0_25px_65px_rgba(24,187,112,0.45)] transition hover:bg-brand-400 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60 disabled:cursor-not-allowed disabled:bg-brand-500/40"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Analisando..." : "Classificar"}
+                </button>
+              </div>
             </motion.form>
+
             <div className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <ResultCard result={result} isLoading={isLoading} error={error} />
               <HistoryPanel
