@@ -21,3 +21,26 @@ export interface ClassificationHistoryEntry {
   inputContent?: string | null;
   result: ClassificationResponse;
 }
+
+export interface GmailSessionStatus {
+  connected: boolean;
+  email: string | null;
+  messages_total: number | null;
+}
+
+export interface GmailAnalyzedMessage {
+  id: string;
+  thread_id: string | null;
+  subject: string;
+  from: string;
+  date: string;
+  snippet: string;
+  classification: ClassificationResponse;
+}
+
+export interface GmailAnalyzeResponse {
+  count: number;
+  query: string;
+  max_results: number;
+  items: GmailAnalyzedMessage[];
+}

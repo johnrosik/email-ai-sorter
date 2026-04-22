@@ -1,12 +1,23 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import gsap from "gsap";
-import { classifyEmail } from "./api";
+import {
+  analyzeGmailInbox,
+  classifyEmail,
+  disconnectGmailSession,
+  getGmailAuthUrl,
+  getGmailSessionStatus
+} from "./api";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { ResultCard } from "./components/ResultCard";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { HistoryDetailModal } from "./components/HistoryDetailModal";
-import type { ClassificationHistoryEntry, ClassificationResponse } from "./types";
+import type {
+  ClassificationHistoryEntry,
+  ClassificationResponse,
+  GmailAnalyzedMessage,
+  GmailSessionStatus
+} from "./types";
 
 const SAMPLE_EMAILS = [
   "Olá equipe, preciso que confirmem a disponibilidade para a reunião de alinhamento amanhã às 9h. Incluam na resposta os pontos que gostariam de tratar.",
@@ -38,6 +49,16 @@ export default function App() {
   const [history, setHistory] = useState<ClassificationHistoryEntry[]>([]);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [productionMode, setProductionMode] = useState<"manual" | "gmail">("manual");
+  const [gmailStatus, setGmailStatus] = useState<GmailSessionStatus>({
+    connected: false,
+    email: null,
+    messages_total: null
+  });
+  const [gmailQuery, setGmailQuery] = useState("in:inbox newer_than:7d");
+  const [gmailMaxResults, setGmailMaxResults] = useState(5);
+  const [gmailItems, setGmailItems] = useState<GmailAnalyzedMessage[]>([]);
+  const [isGmailLoading, setIsGmailLoading] = useState(false);
   const heroTitleRef = useRef<HTMLSpanElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { scrollY } = useScroll();
@@ -152,6 +173,79 @@ export default function App() {
       setNavHidden(false);
     }
   });
+
+  const refreshGmailStatus = useCallback(async () => {
+    try {
+      const status = await getGmailSessionStatus();
+      setGmailStatus(status);
+      if (!status.connected) {
+        setGmailItems([]);
+      }
+    } catch {
+      setGmailStatus({ connected: false, email: null, messages_total: null });
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshGmailStatus();
+  }, [refreshGmailStatus]);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const data = event.data as { type?: string };
+      if (data?.type === "gmail_connected") {
+        void refreshGmailStatus();
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [refreshGmailStatus]);
+
+  const handleConnectGmail = useCallback(async () => {
+    try {
+      const authUrl = await getGmailAuthUrl();
+      window.open(authUrl, "gmail-oauth-popup", "width=560,height=700");
+    } catch (connectError) {
+      const message = connectError instanceof Error ? connectError.message : "Falha ao conectar Gmail.";
+      showErrorMessage(message);
+    }
+  }, []);
+
+  const handleDisconnectGmail = useCallback(async () => {
+    await disconnectGmailSession();
+    setGmailStatus({ connected: false, email: null, messages_total: null });
+    setGmailItems([]);
+  }, []);
+
+  const handleAnalyzeGmail = useCallback(async () => {
+    if (!gmailStatus.connected) {
+      showErrorMessage("Conecte sua conta Gmail antes de analisar.");
+      return;
+    }
+
+    setIsGmailLoading(true);
+    setError(null);
+    setResult(null);
+    setActiveHistoryId(null);
+    setIsHistoryModalOpen(false);
+
+    try {
+      const response = await analyzeGmailInbox({
+        maxResults: gmailMaxResults,
+        query: gmailQuery
+      });
+      setGmailItems(response.items);
+      if (response.items.length === 0) {
+        setError("Nenhum email encontrado com esse filtro.");
+      }
+    } catch (analyzeError) {
+      const message = analyzeError instanceof Error ? analyzeError.message : "Falha ao analisar inbox.";
+      setError(message);
+    } finally {
+      setIsGmailLoading(false);
+    }
+  }, [gmailMaxResults, gmailQuery, gmailStatus.connected]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -438,90 +532,198 @@ export default function App() {
               </p>
             </div>
 
-            <motion.form
-              onSubmit={handleSubmit}
-              className="space-y-6"
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <label htmlFor="email-text" className="text-xs uppercase tracking-[0.35em] text-slate-300/80">
-                  Conteúdo do email
-                </label>
-                <span className="text-xs uppercase tracking-[0.35em] text-slate-400/80">
-                  {charactersRemaining} caracteres restantes
-                </span>
-              </div>
-              <textarea
-                id="email-text"
-                name="email-text"
-                value={emailText}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEmailText(event.target.value)}
-                placeholder="Cole ou digite a mensagem aqui..."
-                className="h-64 w-full resize-y rounded-3xl bg-[#0d422d] p-6 text-base text-slate-100 shadow-inner shadow-black/35 outline-none transition focus:ring-2 focus:ring-brand-500/40"
-                maxLength={5000}
-              />
+            <div className="mb-6 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setProductionMode("manual")}
+                className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition ${
+                  productionMode === "manual"
+                    ? "bg-brand-500 text-[#032112]"
+                    : "bg-[#165339] text-brand-100 hover:bg-[#1d6b48]"
+                }`}
+              >
+                Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setProductionMode("gmail")}
+                className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition ${
+                  productionMode === "gmail"
+                    ? "bg-brand-500 text-[#032112]"
+                    : "bg-[#165339] text-brand-100 hover:bg-[#1d6b48]"
+                }`}
+              >
+                Gmail Inbox
+              </button>
+            </div>
 
-              <div className="rounded-3xl bg-[#0d422d] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)]">
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-300/80">Upload de arquivo (opcional)</p>
-                <p className="mt-2 text-xs text-slate-400/90">
-                  Formatos aceitos: <span className="text-slate-200">.txt</span> e <span className="text-slate-200">.pdf</span>
-                  (até 16MB)
-                </p>
-                <div className="mt-4 flex flex-wrap items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center justify-center rounded-full bg-brand-500/28 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-100 transition hover:bg-brand-500/42 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
-                  >
-                    Selecionar arquivo
-                  </button>
-                  <input ref={fileInputRef} type="file" accept=".txt,.pdf" onChange={handleFileChange} className="sr-only" />
-                  <span className={`text-xs ${selectedFile ? "text-slate-100" : "text-slate-400"}`}>
-                    {selectedFile ? selectedFile.name : "Nenhum arquivo selecionado"}
-                  </span>
-                  {selectedFile && (
+            {productionMode === "manual" ? (
+              <>
+                <motion.form
+                  onSubmit={handleSubmit}
+                  className="space-y-6"
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.4 }}
+                  transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <label htmlFor="email-text" className="text-xs uppercase tracking-[0.35em] text-slate-300/80">
+                      Conteúdo do email
+                    </label>
+                    <span className="text-xs uppercase tracking-[0.35em] text-slate-400/80">
+                      {charactersRemaining} caracteres restantes
+                    </span>
+                  </div>
+                  <textarea
+                    id="email-text"
+                    name="email-text"
+                    value={emailText}
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEmailText(event.target.value)}
+                    placeholder="Cole ou digite a mensagem aqui..."
+                    className="h-64 w-full resize-y rounded-3xl bg-[#0d422d] p-6 text-base text-slate-100 shadow-inner shadow-black/35 outline-none transition focus:ring-2 focus:ring-brand-500/40"
+                    maxLength={5000}
+                  />
+
+                  <div className="rounded-3xl bg-[#0d422d] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)]">
+                    <p className="text-xs uppercase tracking-[0.35em] text-slate-300/80">Upload de arquivo (opcional)</p>
+                    <p className="mt-2 text-xs text-slate-400/90">
+                      Formatos aceitos: <span className="text-slate-200">.txt</span> e <span className="text-slate-200">.pdf</span>
+                      (até 16MB)
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="inline-flex items-center justify-center rounded-full bg-brand-500/28 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-100 transition hover:bg-brand-500/42 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+                      >
+                        Selecionar arquivo
+                      </button>
+                      <input ref={fileInputRef} type="file" accept=".txt,.pdf" onChange={handleFileChange} className="sr-only" />
+                      <span className={`text-xs ${selectedFile ? "text-slate-100" : "text-slate-400"}`}>
+                        {selectedFile ? selectedFile.name : "Nenhum arquivo selecionado"}
+                      </span>
+                      {selectedFile && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="inline-flex items-center justify-center rounded-full bg-[#1a5f43] px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-100 transition hover:bg-[#227752] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     <button
                       type="button"
-                      onClick={handleRemoveFile}
-                      className="inline-flex items-center justify-center rounded-full bg-[#1a5f43] px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-100 transition hover:bg-[#227752] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
+                      onClick={handleUseSample}
+                      className="inline-flex items-center justify-center rounded-full bg-[#165339] px-6 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-brand-100 shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition hover:bg-[#1d6b48] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
                     >
-                      Remover
+                      Usar exemplo aleatório
                     </button>
+
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-full bg-brand-500 px-8 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-[#032112] shadow-[0_25px_65px_rgba(24,187,112,0.45)] transition hover:bg-brand-400 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60 disabled:cursor-not-allowed disabled:bg-brand-500/40"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Analisando..." : "Classificar"}
+                    </button>
+                  </div>
+                </motion.form>
+
+                <div className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <ResultCard result={result} isLoading={isLoading} error={error} />
+                  <HistoryPanel
+                    history={history}
+                    activeId={activeHistoryId}
+                    onSelect={handleSelectHistory}
+                    onOpenDetail={handleHistoryDetailOpen}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-6 rounded-3xl bg-[#0d422d] p-6 shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-200/70">Conexão Gmail</p>
+                    <p className="text-sm text-slate-100">
+                      {gmailStatus.connected ? `Conectado: ${gmailStatus.email ?? "Conta ativa"}` : "Não conectado"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {!gmailStatus.connected ? (
+                      <button
+                        type="button"
+                        onClick={handleConnectGmail}
+                        className="rounded-full bg-brand-500 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#032112]"
+                      >
+                        Conectar Gmail
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectGmail}
+                        className="rounded-full bg-[#165339] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-100"
+                      >
+                        Desconectar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-[1fr_160px_auto]">
+                  <input
+                    type="text"
+                    value={gmailQuery}
+                    onChange={(event) => setGmailQuery(event.target.value)}
+                    placeholder="Ex.: in:inbox newer_than:7d"
+                    className="rounded-2xl bg-[#11472f] px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/40"
+                  />
+                  <select
+                    value={gmailMaxResults}
+                    onChange={(event) => setGmailMaxResults(Number(event.target.value))}
+                    className="rounded-2xl bg-[#11472f] px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/40"
+                  >
+                    <option value={3}>3 emails</option>
+                    <option value={5}>5 emails</option>
+                    <option value={10}>10 emails</option>
+                    <option value={20}>20 emails</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeGmail}
+                    disabled={!gmailStatus.connected || isGmailLoading}
+                    className="rounded-2xl bg-brand-500 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#032112] disabled:cursor-not-allowed disabled:bg-brand-500/40"
+                  >
+                    {isGmailLoading ? "Analisando..." : "Analisar Inbox"}
+                  </button>
+                </div>
+
+                {error && <p className="text-sm text-red-200">{error}</p>}
+
+                <div className="space-y-3">
+                  {gmailItems.length === 0 && (
+                    <p className="text-sm text-slate-200/80">
+                      Conecte o Gmail e execute a análise. Os resultados aparecem somente nesta sessão.
+                    </p>
                   )}
+                  {gmailItems.map((item) => (
+                    <div key={item.id} className="rounded-2xl bg-[#11472f] p-4">
+                      <p className="text-sm font-semibold text-slate-100">{item.subject || "(Sem assunto)"}</p>
+                      <p className="mt-1 text-xs text-slate-200/75">{item.from}</p>
+                      <p className="mt-2 text-xs text-slate-200/70">{item.snippet}</p>
+                      <p className="mt-2 text-xs text-brand-100/90">
+                        Classificação: {item.classification.productive === null ? "Inconclusivo" : item.classification.productive ? "Produtivo" : "Não produtivo"}
+                        {typeof item.classification.confidence === "number" ? ` (${(item.classification.confidence * 100).toFixed(0)}%)` : ""}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <button
-                  type="button"
-                  onClick={handleUseSample}
-                  className="inline-flex items-center justify-center rounded-full bg-[#165339] px-6 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-brand-100 shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition hover:bg-[#1d6b48] hover:text-brand-50 focus:outline-none focus-visible:ring focus-visible:ring-brand-300/50"
-                >
-                  Usar exemplo aleatório
-                </button>
-
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-full bg-brand-500 px-8 py-3 text-xs font-semibold uppercase tracking-[0.35em] text-[#032112] shadow-[0_25px_65px_rgba(24,187,112,0.45)] transition hover:bg-brand-400 focus:outline-none focus-visible:ring focus-visible:ring-brand-400/60 disabled:cursor-not-allowed disabled:bg-brand-500/40"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Analisando..." : "Classificar"}
-                </button>
-              </div>
-            </motion.form>
-
-            <div className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <ResultCard result={result} isLoading={isLoading} error={error} />
-              <HistoryPanel
-                history={history}
-                activeId={activeHistoryId}
-                onSelect={handleSelectHistory}
-                onOpenDetail={handleHistoryDetailOpen}
-              />
-            </div>
+            )}
           </div>
         </section>
       </main>

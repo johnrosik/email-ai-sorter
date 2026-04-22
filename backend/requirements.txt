@@ -7,6 +7,8 @@ gunicorn==22.0.0
 
 # Bibliotecas de AI/ML
 google-generativeai==0.8.0
+google-auth-oauthlib==1.2.2
+google-api-python-client==2.194.0
 
 # Processamento de PDF
 pypdf==6.0.0
