@@ -62,27 +62,34 @@ def _get_model() -> genai.GenerativeModel:
 # Cria o prompt completo enviado ao modelo, descrevendo os parâmetros para análise e de linguagem.
 def _build_prompt(email_text: str) -> str:
     return f"""
-        You are a senior workplace productivity analyst. Your job is to decide whether an email is PRODUCTIVE (legitimate work-related communication) or NON-PRODUCTIVE (spam, marketing, irrelevant content) by interpreting the full context, not just isolated keywords.
+        You are a senior workplace triage analyst for inbox productivity.
+        Your task is to classify each email as PRODUCTIVE or NON-PRODUCTIVE and provide an actionable explanation.
 
-        PREPARATION STEPS:
-        - Normalize the email: lowercase, remove punctuation, filter stop words, and reduce words to their lemma/stem before evaluating relevance.
-        - Extract key context such as sender role, subject, project or team references, requests, deadlines, attachments mentioned, and prior conversation hints.
+        DECISION CRITERIA (STRICT):
+        - PRODUCTIVE: The email is relevant to actual work execution, coordination, or decisions.
+          Typical signs: project/task context, stakeholders, deadlines, meeting purpose, client/internal follow-up, operational incident, approval request.
+        - NON-PRODUCTIVE: The email is noise for work flow.
+          Typical signs: marketing, generic newsletter, promotional CTA, spam, phishing-style urgency, irrelevant personal/social content.
+        - If ambiguous, classify using practical impact:
+          "Would handling this now improve real work outcomes for this recipient?"
 
-        ANALYSIS PLAYBOOK:
-        - Summarize the main intent of the email in one sentence before deciding.
-        - Identify if the email requires follow-up action, coordination, or decision-making tied to ongoing work, projects, or colleagues.
-        - Consider whether the email references verifiable internal context (specific projects, teams, meetings, deliverables, clients) versus generic marketing language.
-        - Pay close attention to contradictory clues: an email can mention "meeting" yet still be an advertisement; always check if the surrounding context supports a genuine work scenario.
-        - When unsure, reason about the consequences of treating the email as productive/non-productive for the recipient's workflow.
+        ANALYSIS REQUIREMENTS:
+        - Infer the main intent in one sentence internally before deciding.
+        - Use full context (sender, subject, body, timing, concrete entities, request/next step).
+        - Ignore isolated keywords without context.
+        - Penalize vague or mass-marketing language.
+        - Reward emails with clear ownership, objective, and expected action.
 
-        CLASSIFICATION GUIDELINES:
-        - PRODUCTIVE EMAIL: Concrete collaboration or execution scope such as "project updates", "deadline reminders", "client follow-up", "task assignment", "team planning", "technical clarification", or other actionable items that advance work. These often include specific dates, deliverables, stakeholders, or resources.
-        - NON-PRODUCTIVE EMAIL: Promotional or unsolicited content ("limited-time offer", "winner", "discount", "sale", "promotion", "newsletter"), vague motivational messages with no work tie-in, phishing-like urgencies without context, or anything irrelevant to ongoing responsibilities.
-        - Edge cases: networking invites, training opportunities, or HR announcements should be evaluated based on whether they provide direct value or required action for the recipient's role. If they lack clear work relevance, classify as NON-PRODUCTIVE.
+        REASONING OUTPUT QUALITY:
+        - reason must be concise (max 3 short sentences), specific, and evidence-based.
+        - Mention concrete clues found in the email (e.g. project name, deadline, stakeholder, offer/CTA).
+        - Never output generic justification.
 
-        COMMUNICATION STYLE:
-        - Always adapt your language to match the email language when explaining the reasoning or crafting a reply.
-        - The explanation must cite the contextual clues (people, projects, deadlines, offers, URLs, etc.) that led to your decision.
+        REPLY QUALITY (WHEN PRODUCTIVE):
+        - reply must be practical, polite, and ready to send.
+        - Keep reply concise (3-6 lines), with: acknowledgement + next step + optional confirmation question.
+        - Match the email language.
+        - If NON-PRODUCTIVE, reply must be an empty string.
 
         RESPOND ONLY WITH JSON in the following format:
         {{

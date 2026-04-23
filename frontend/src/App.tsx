@@ -55,7 +55,10 @@ export default function App() {
     email: null,
     messages_total: null
   });
-  const [gmailQuery, setGmailQuery] = useState("in:inbox newer_than:7d");
+  const [gmailFilter, setGmailFilter] = useState<"today" | "last7" | "custom">("last7");
+  const [gmailCustomStartDate, setGmailCustomStartDate] = useState("");
+  const [gmailCustomEndDate, setGmailCustomEndDate] = useState("");
+  const [gmailKeywordQuery, setGmailKeywordQuery] = useState("");
   const [gmailMaxResults, setGmailMaxResults] = useState(1);
   const [gmailItems, setGmailItems] = useState<GmailAnalyzedMessage[]>([]);
   const [isGmailLoading, setIsGmailLoading] = useState(false);
@@ -64,6 +67,47 @@ export default function App() {
   const { scrollY } = useScroll();
 
   const charactersRemaining = useMemo(() => Math.max(0, 5000 - emailText.length), [emailText]);
+
+  const formatGmailDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}/${month}/${day}`;
+  };
+
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
+  const gmailEffectiveQuery = useMemo(() => {
+    const baseParts = ["in:inbox"];
+    const now = new Date();
+
+    if (gmailFilter === "today") {
+      const today = formatGmailDate(now);
+      const tomorrow = formatGmailDate(addDays(now, 1));
+      baseParts.push(`after:${today}`, `before:${tomorrow}`);
+    } else if (gmailFilter === "last7") {
+      baseParts.push("newer_than:7d");
+    } else {
+      if (gmailCustomStartDate) {
+        baseParts.push(`after:${gmailCustomStartDate.replace(/-/g, "/")}`);
+      }
+      if (gmailCustomEndDate) {
+        const endDate = new Date(`${gmailCustomEndDate}T00:00:00`);
+        const nextDay = formatGmailDate(addDays(endDate, 1));
+        baseParts.push(`before:${nextDay}`);
+      }
+    }
+
+    if (gmailKeywordQuery.trim()) {
+      baseParts.push(gmailKeywordQuery.trim());
+    }
+
+    return baseParts.join(" ").trim();
+  }, [gmailCustomEndDate, gmailCustomStartDate, gmailFilter, gmailKeywordQuery]);
 
   const resetFileInput = () => {
     if (fileInputRef.current) {
@@ -233,7 +277,7 @@ export default function App() {
     try {
       const response = await analyzeGmailInbox({
         maxResults: gmailMaxResults,
-        query: gmailQuery
+        query: gmailEffectiveQuery
       });
       setGmailItems(response.items);
       if (response.items.length === 0) {
@@ -245,7 +289,7 @@ export default function App() {
     } finally {
       setIsGmailLoading(false);
     }
-  }, [gmailMaxResults, gmailQuery, gmailStatus.connected]);
+  }, [gmailEffectiveQuery, gmailMaxResults, gmailStatus.connected]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -674,12 +718,59 @@ export default function App() {
                   </div>
                 </div>
 
+                <div className="grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+                  <button
+                    type="button"
+                    onClick={() => setGmailFilter("today")}
+                    className={`rounded-2xl px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${
+                      gmailFilter === "today" ? "bg-brand-500 text-[#032112]" : "bg-[#11472f] text-brand-100"
+                    }`}
+                  >
+                    Hoje
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGmailFilter("last7")}
+                    className={`rounded-2xl px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${
+                      gmailFilter === "last7" ? "bg-brand-500 text-[#032112]" : "bg-[#11472f] text-brand-100"
+                    }`}
+                  >
+                    Últimos 7 dias
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGmailFilter("custom")}
+                    className={`rounded-2xl px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${
+                      gmailFilter === "custom" ? "bg-brand-500 text-[#032112]" : "bg-[#11472f] text-brand-100"
+                    }`}
+                  >
+                    Data personalizada
+                  </button>
+                </div>
+
+                {gmailFilter === "custom" && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <input
+                      type="date"
+                      value={gmailCustomStartDate}
+                      onChange={(event) => setGmailCustomStartDate(event.target.value)}
+                      className="rounded-2xl bg-[#11472f] px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/40"
+                    />
+                    <input
+                      type="date"
+                      value={gmailCustomEndDate}
+                      onChange={(event) => setGmailCustomEndDate(event.target.value)}
+                      className="rounded-2xl bg-[#11472f] px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/40"
+                    />
+                  </div>
+                )}
+
                 <div className="grid gap-4 md:grid-cols-[1fr_160px_auto]">
                   <input
                     type="text"
-                    value={gmailQuery}
-                    onChange={(event) => setGmailQuery(event.target.value)}
-                    placeholder="Ex.: in:inbox newer_than:7d"
+                    value={gmailKeywordQuery}
+                    onChange={(event) => setGmailKeywordQuery(event.target.value)}
+                    placeholder="Filtro opcional: from:dominio.com assunto palavra"
                     className="rounded-2xl bg-[#11472f] px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                   <select
@@ -702,6 +793,7 @@ export default function App() {
                     {isGmailLoading ? "Analisando..." : "Analisar Inbox"}
                   </button>
                 </div>
+                <p className="text-xs text-slate-200/70">Query aplicada: {gmailEffectiveQuery}</p>
 
                 {error && <p className="text-sm text-red-200">{error}</p>}
 
@@ -727,30 +819,55 @@ export default function App() {
                           </p>
                         </details>
                       )}
-                      <p className="mt-2 text-xs text-brand-100/90">
-                        Classificação: {item.classification.productive === null ? "Inconclusivo" : item.classification.productive ? "Produtivo" : "Não produtivo"}
-                        {typeof item.classification.confidence === "number" ? ` (${(item.classification.confidence * 100).toFixed(0)}%)` : ""}
-                      </p>
-                      {item.classification.reason && (
-                        <p className="mt-2 text-xs text-slate-100/85">
-                          Motivo: {item.classification.reason}
-                        </p>
-                      )}
-                      {item.classification.keywords && item.classification.keywords.length > 0 && (
-                        <p className="mt-2 text-xs text-slate-100/80">
-                          Palavras-chave: {item.classification.keywords.join(", ")}
-                        </p>
-                      )}
-                      {item.classification.reply && (
-                        <details className="mt-2">
-                          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.2em] text-brand-100/90">
-                            Ver resposta sugerida
-                          </summary>
-                          <p className="mt-2 whitespace-pre-wrap rounded-xl bg-[#0b3b28] p-3 text-xs leading-relaxed text-slate-100/90">
-                            {item.classification.reply}
+                      <div className="mt-3 rounded-xl bg-[#0b3b28] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] uppercase tracking-[0.18em] text-slate-200/75">Classificação</span>
+                          <span
+                            className={`rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                              item.classification.productive === null
+                                ? "bg-slate-600/40 text-slate-200"
+                                : item.classification.productive
+                                ? "bg-brand-500/25 text-brand-100"
+                                : "bg-red-500/25 text-red-100"
+                            }`}
+                          >
+                            {item.classification.productive === null ? "Inconclusivo" : item.classification.productive ? "Produtivo" : "Não produtivo"}
+                          </span>
+                        </div>
+                        {typeof item.classification.confidence === "number" && (
+                          <div className="mt-2">
+                            <div className="h-1.5 w-full rounded-full bg-black/25">
+                              <div
+                                className="h-1.5 rounded-full bg-brand-400"
+                                style={{ width: `${Math.max(0, Math.min(100, item.classification.confidence * 100))}%` }}
+                              />
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-200/80">
+                              Confiança: {(item.classification.confidence * 100).toFixed(0)}%
+                            </p>
+                          </div>
+                        )}
+                        {item.classification.reason && (
+                          <p className="mt-2 text-xs text-slate-100/85">
+                            <span className="font-semibold">Justificativa:</span> {item.classification.reason}
                           </p>
-                        </details>
-                      )}
+                        )}
+                        {item.classification.keywords && item.classification.keywords.length > 0 && (
+                          <p className="mt-2 text-xs text-slate-100/80">
+                            <span className="font-semibold">Palavras-chave:</span> {item.classification.keywords.join(", ")}
+                          </p>
+                        )}
+                        {item.classification.reply && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.2em] text-brand-100/90">
+                              Resposta sugerida
+                            </summary>
+                            <p className="mt-2 whitespace-pre-wrap rounded-xl bg-[#082f20] p-3 text-xs leading-relaxed text-slate-100/90">
+                              {item.classification.reply}
+                            </p>
+                          </details>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
